@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.CaseFormat;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -137,7 +136,7 @@ public class GooGoo {
 
                     if ("between".equals(showType)) {
                         fields.append(getBetweenField(dataType, field.getString("key")));
-                    } else if ("select".equals(showType) || "radio".equals(showType)) {
+                    } else if ("checkbox".equals(showType) || "multiselect".equals(showType)) {
                         fields.append(getListField(dataType, field.getString("key")));
                     } else {
                         fields.append(getSingleField(dataType, field.getString("key")));
@@ -210,7 +209,7 @@ public class GooGoo {
 
     private static void generateFile(List<String> lines, String outputDir, String tableName, String fileName) throws IOException {
         ensureDir(outputDir, tableName);
-        String upCamelName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, tableName);
+        String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
         File target = new File(outputDir + "/" + tableName + "/" + upCamelName + fileName);
         System.out.println("INFO: writing file " + target.getAbsolutePath());
         BufferedWriter bw = Files.newBufferedWriter(target.toPath());
@@ -234,8 +233,8 @@ public class GooGoo {
     }
 
     private static Map<String, String> getParamMap(String tableName) {
-        String lowCamelName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, tableName);
-        String upCamelName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, tableName);
+        String lowCamelName = tableName;
+        String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
         Map<String, String> params = Maps.newHashMap();
         params.put("lowCamelName", lowCamelName);
         params.put("upCamelName", upCamelName);
@@ -244,7 +243,7 @@ public class GooGoo {
 
     /**读取模版文件并做变量替换*/
     private static List<String> parseTemplate(String templateFileName, final Map<String, String> params) throws MalformedURLException, IOException {
-        final Pattern p = Pattern.compile("\\{(.*)\\}");
+        final Pattern p = Pattern.compile("\\{(.*?)\\}");
         // 定义每行的处理逻辑
         LineProcessor<List<String>> processor = new LineProcessor<List<String>>() {
 
@@ -253,7 +252,7 @@ public class GooGoo {
             @Override
             public boolean processLine(String line) throws IOException {
                 String tmp = line;
-                Matcher m = p.matcher(tmp);
+                Matcher m = p.matcher(line);
                 while (m.find()) {
                     String key = m.group(1);
                     if (params.containsKey(key)) {

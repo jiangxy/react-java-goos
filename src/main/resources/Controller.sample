@@ -1,10 +1,7 @@
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.List;
 
 import javax.servlet.ServletOutputStream;
@@ -21,9 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.vdian.matrix.common.CommonResult;
 
@@ -34,10 +29,10 @@ import static com.google.common.base.Preconditions.*;
  * 注意这个类中的所有方法不能抛异常，即使出错也用CommonResult包装下返回错误信息
  */
 @Controller
-@RequestMapping("/api/{lowCameName}")
-public class {upCamleName}Controller {
+@RequestMapping("/api/{lowCamelName}")
+public class {upCamelName}Controller {
 
-    private static Logger logger = LoggerFactory.getLogger({upCamleName}Controller.class);
+    private static Logger logger = LoggerFactory.getLogger({upCamelName}Controller.class);
 
     /*
      * 如果要提供跨域的接口，需要支持CORS
@@ -57,12 +52,14 @@ public class {upCamleName}Controller {
      */
     @RequestMapping("select")
     @ResponseBody
-    public CommonResult<List<{upCamleName}VO>> select(@RequestBody {upCamleName}QueryVO vo) {
+    public CommonResult<List<{upCamelName}VO>> select(@RequestBody {upCamelName}QueryVO vo) {
         try {
             checkNotNull(vo);
-            
+            List<{upCamelName}VO> result = Lists.newArrayList();
+
             // TODO: 填写自己的逻辑
-            
+
+            return CommonResult.successReturn(result);
         } catch (Exception e) {
             logger.error("select error", e);
             return CommonResult.errorReturn(e.getMessage());
@@ -77,12 +74,13 @@ public class {upCamleName}Controller {
      */
     @RequestMapping("insert")
     @ResponseBody
-    public CommonResult<{upCamleName}VO> insert(@RequestBody {upCamleName}VO vo) {
+    public CommonResult<{upCamelName}VO> insert(@RequestBody {upCamelName}VO vo) {
         try {
             checkNotNull(vo);
-            
+
             // TODO: 填写自己的逻辑
-            
+
+            return CommonResult.successReturn(vo);
         } catch (Exception e) {
             logger.error("insert error", e);
             return CommonResult.errorReturn(e.getMessage());
@@ -99,14 +97,15 @@ public class {upCamleName}Controller {
      */
     @RequestMapping("update")
     @ResponseBody
-    public CommonResult<String> update(@RequestParam("keys") String keys, @RequestBody TestVO vo) {
+    public CommonResult<String> update(@RequestParam("keys") String keys, @RequestBody {upCamelName}VO vo) {
         try {
             checkNotNull(keys);
             checkNotNull(vo);
-            // 由于主键可能是数字，也可能是字符串，所以要自己处理
-            
+
+            // 注意：主键可能是数字，也可能是字符串，要自己处理
             // TODO: 填写自己的逻辑
-          
+
+            return CommonResult.successReturn("成功更新XX条记录");
         } catch (Exception e) {
             logger.error("update error", e);
             return CommonResult.errorReturn(e.getMessage());
@@ -125,9 +124,10 @@ public class {upCamleName}Controller {
     public CommonResult<String> delete(@RequestParam("keys") String keys) {
         try {
             checkNotNull(keys);
-            
+
             // TODO: 填写自己的逻辑
-            
+
+            return CommonResult.successReturn("成功删除XX条记录");
         } catch (Exception e) {
             logger.error("delete error", e);
             return CommonResult.errorReturn(e.getMessage());
@@ -179,14 +179,12 @@ public class {upCamleName}Controller {
             checkArgument(json.size() > 0, "empty query condition");
 
             // 注意这个方法是查询符合条件的所有记录，忽略vo中的page和pageSize
-            TestQueryVO vo = JSONObject.parseObject(q, TestQueryVO.class);
+            {upCamelName}QueryVO vo = JSONObject.parseObject(q, {upCamelName}QueryVO.class);
 
-            // 根据VO中的条件查询并将结果写入一个临时文件
-            String fileName = "test.txt";
+            // TODO: 根据QueryVO中的条件查询并将结果写入一个临时文件
+            String fileName = "test.txt"; // 用户下载得到的文件名
             File tmpFile = new File(System.getProperty("java.io.tmpdir"), System.currentTimeMillis() + fileName);
             logger.info("export: writing tmp file {}", tmpFile.getAbsolutePath());
-
-            
 
             // 通过http返回数据
             res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
@@ -202,7 +200,6 @@ public class {upCamleName}Controller {
         } catch (Exception e) {
             logger.error("export error", e);
             try {
-                // FIXME: ugly code
                 res.reset();
                 res.setHeader("Content-Type", "text/plain;charset=utf-8");
                 ServletOutputStream out = res.getOutputStream();
@@ -210,7 +207,7 @@ public class {upCamleName}Controller {
                 out.write(("错误信息：" + e.getMessage()).getBytes("utf-8"));
                 IOUtils.closeQuietly(out);
             } catch (IOException e1) {
-                // just ignore
+                e1.printStackTrace();
             }
         }
     }
