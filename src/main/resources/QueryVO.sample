@@ -1,0 +1,19 @@
+import java.util.Date;
+import java.util.List;
+
+import lombok.Data;
+
+/**
+ * QueryVO例子
+ *
+ * @version 1.0
+ */
+@Data
+public class {upCamelName}QueryVO {
+    
+    {fields}
+
+    // 这两个要有默认值
+    private Integer page = 1;
+    private Integer pageSize = 50;
+}

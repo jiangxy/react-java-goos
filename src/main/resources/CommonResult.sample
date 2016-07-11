@@ -1,0 +1,77 @@
+package com.vdian.matrix.common;
+
+import java.io.Serializable;
+
+/**
+ * <p>版权所有： 版权所有(C)2011-2099</p>
+ * <p>公   司： 口袋购物 </p>
+ * <p>内容摘要： </p>
+ * <p>其他说明： </p>
+ * <p>完成日期：16/1/13</p>
+ *
+ * @author liuqingjie
+ * @version 1.0
+ */
+public class CommonResult<T> implements Serializable {
+
+    private static final long serialVersionUID = 6392121795909657029L;
+
+    private String errorMsg;
+    private boolean success = true;
+    private T data;
+    private Integer totalCount;
+
+    public CommonResult() {
+
+    }
+
+    public CommonResult(boolean success, T data) {
+        this.success = success;
+        this.data = data;
+    }
+
+    public CommonResult(boolean success, String msg) {
+        this.success = success;
+        this.errorMsg = msg;
+    }
+
+    public static <T> CommonResult<T> successReturn(T t) {
+        return new CommonResult<T>(true, t);
+    }
+
+    public static <T> CommonResult<T> errorReturn(String msg) {
+        return new CommonResult<T>(false, msg);
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
+
+    public Integer getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(Integer totalCount) {
+        this.totalCount = totalCount;
+    }
+}

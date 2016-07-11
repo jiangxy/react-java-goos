@@ -1,0 +1,29 @@
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+/**
+ * LoginController例子
+ *
+ * @version 1.0
+ */
+@Controller
+@RequestMapping("/api/login")
+public class LoginController {
+
+    /**
+     * 返回当前登录用户的用户名
+     *
+     * @return
+     */
+    @RequestMapping("validate")
+    @ResponseBody
+    public CommonResult<String> getUserName() {
+        User user = SSOUtil.getUser();
+        if (user != null && user.getName() != null)
+            return CommonResult.successReturn(SSOUtil.getUser().getName());
+        else
+            return CommonResult.errorReturn("not login yet");
+    }
+
+}

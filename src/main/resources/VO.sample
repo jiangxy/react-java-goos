@@ -1,0 +1,13 @@
+import java.util.Date;
+
+import lombok.Data;
+
+/**
+ * VO例子
+ *
+ * @version 1.0
+ */
+@Data
+public class {upCamelName}VO {
+    {fields}
+}
