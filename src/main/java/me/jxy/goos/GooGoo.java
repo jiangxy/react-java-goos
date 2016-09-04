@@ -1,4 +1,4 @@
-package com.vdian.goos;
+package me.jxy.goos;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -23,16 +23,10 @@ import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
 /**
- * <p>文件名称：GooGoo.java</p>
- * <p>文件描述：</p>
- * <p>版权所有：版权所有(C)2011-2099</p>
- * <p>公   司：口袋购物 </p>
- * <p>内容摘要：</p>
- * <p>其他说明：</p>
- * <p>完成日期：2016年7月10日</p>
- *
+ * 生成通用后台需要的模版类
+ * 
  * @version 1.0
- * @author jiangxiyang@weidian.com
+ * @author foolbeargm@gmail.com
  */
 public class GooGoo {
 
@@ -111,13 +105,7 @@ public class GooGoo {
     }
 
     /**
-     * <p>功能描述：根据QuerySchema生成QueryVO</p>
-     * <p>创建人：jiangxiyang</p>
-     * <p>创建日期：2016年7月11日 上午11:07:30</p>
-     *
-     * @param schemaFile
-     * @param outputDir
-     * @param tableName
+     * 根据QuerySchema生成QueryVO
      */
     private static void generateQueryVO(File schemaFile, String outputDir, String tableName) {
         System.out.println("INFO: generating QueryVO for " + tableName);
@@ -319,14 +307,7 @@ public class GooGoo {
     }
 
     /**
-     * <p>功能描述：读取schema文件并转换为json对象</p>
-     * <p>创建人：jiangxiyang</p>
-     * <p>创建日期：2016年7月11日 上午9:58:50</p>
-     *
-     * @param schemaFile
-     * @param tableName
-     * @return
-     * @throws IOException 
+     * 读取schema文件并转换为json对象
      */
     private static JSONArray parseJson(File schemaFile) throws IOException {
         BufferedReader br = new BufferedReader(new FileReader(schemaFile));
@@ -363,12 +344,7 @@ public class GooGoo {
     }
 
     /**
-     * <p>功能描述：确保某个目录存在，不存在则新建</p>
-     * <p>创建人：jiangxiyang</p>
-     * <p>创建日期：2016年7月11日 上午10:04:50</p>
-     *
-     * @param parent
-     * @param child
+     * 确保某个目录存在，不存在则新建
      */
     private static void ensureDir(String parent, String child) {
         File f = new File(parent, child);
@@ -377,10 +353,7 @@ public class GooGoo {
     }
 
     /**
-     * <p>功能描述：打印帮助信息</p>
-     * <p>创建人：jiangxiyang</p>
-     * <p>创建日期：2016年7月11日 上午10:08:34</p>
-     *
+     * 打印帮助信息
      */
     private static void usage() {
         System.err.println("Param incorrect.");
