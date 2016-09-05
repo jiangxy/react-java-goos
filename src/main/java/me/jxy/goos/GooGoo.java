@@ -214,6 +214,10 @@ public class GooGoo {
      */
     private static void copyFile(String inputFile, String outputDir, String outputName) throws IOException {
         File target = new File(outputDir, outputName);
+        if (target.exists()) {
+            System.out.println("INFO: delete exist file " + target.getAbsolutePath());
+            target.delete();
+        }
         System.out.println("INFO: writing file " + target.getAbsolutePath());
         BufferedWriter bw = Files.newBufferedWriter(target.toPath());
         for (String line : Resources.readLines(Resources.getResource(inputFile), Charsets.UTF_8)) {
@@ -267,6 +271,10 @@ public class GooGoo {
         ensureDir(outputDir, tableName);
         String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
         File target = new File(outputDir + "/" + tableName + "/" + upCamelName + fileName);
+        if (target.exists()) {
+            System.out.println("INFO: delete exist file " + target.getAbsolutePath());
+            target.delete();
+        }
         System.out.println("INFO: writing file " + target.getAbsolutePath());
         BufferedWriter bw = Files.newBufferedWriter(target.toPath());
         for (String line : lines) {
