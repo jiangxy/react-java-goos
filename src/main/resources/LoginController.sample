@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * @version 1.0
  */
 @Controller
-@RequestMapping("/api/login")
+@RequestMapping("/api")
 public class LoginController {
 
     /**
@@ -16,14 +16,35 @@ public class LoginController {
      *
      * @return
      */
-    @RequestMapping("validate")
+    @RequestMapping("getCurrentUser")
     @ResponseBody
-    public CommonResult<String> getUserName() {
+    public CommonResult<String> getCurrentUser() {
         User user = SSOUtil.getUser();
         if (user != null && user.getName() != null)
             return CommonResult.successReturn(SSOUtil.getUser().getName());
         else
             return CommonResult.errorReturn("not login yet");
     }
-
+    
+    /**
+     * 返回当前登录用户的用户名
+     *
+     * @return
+     */
+    @RequestMapping("login")
+    @ResponseBody
+    public CommonResult<String> login(String username, String password) {
+        
+    }
+    
+    /**
+     * 返回当前登录用户的用户名
+     *
+     * @return
+     */
+    @RequestMapping("logout")
+    @ResponseBody
+    public CommonResult<String> logout() {
+        
+    }
 }

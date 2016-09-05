@@ -34,8 +34,17 @@ public class GooGoo {
     private static Pattern dataSchemaPattern = Pattern.compile("^(.*)\\.dataSchema\\.js$");
     private static Pattern modulePattern = Pattern.compile("^module\\.exports\\s+=\\s+(.*)$");
 
+    /**
+     * 打印帮助信息
+     */
+    private static void usage() {
+        System.err.println("Param incorrect.");
+        System.err.println("Usage: java -jar goos.jar [inputDir] [outputDir]");
+    }
+
     public static void main(String[] args) {
-        if (args.length > 2) {
+        // 至少要有一个参数
+        if (args.length > 2 || args.length < 1) {
             usage();
             return;
         }
@@ -52,6 +61,7 @@ public class GooGoo {
             inputDir = args[0];
         }
 
+        // 为了减少jar的大小，不使用logger，直接sysout了
         System.out.println("INFO: input directory = " + inputDir);
         System.out.println("INFO: output directory = " + outputDir);
 
@@ -147,7 +157,9 @@ public class GooGoo {
         }
     }
 
-    /**根据dataSchema生成VO*/
+    /**
+     * 根据dataSchema生成VO
+     */
     private static void generateVO(File schemaFile, String outputDir, String tableName) {
         System.out.println("INFO: generating VO for " + tableName);
 
@@ -181,7 +193,9 @@ public class GooGoo {
         }
     }
 
-    /**生成controller*/
+    /**
+     * 生成controller
+     */
     private static void generateController(String outputDir, String tableName) {
         System.out.println("INFO: generating Controller for " + tableName);
 
@@ -195,6 +209,60 @@ public class GooGoo {
         }
     }
 
+    /**
+     * 从classpath中读取某个文件，原样写入outputDir
+     */
+    private static void copyFile(String inputFile, String outputDir, String outputName) throws IOException {
+        File target = new File(outputDir, outputName);
+        System.out.println("INFO: writing file " + target.getAbsolutePath());
+        BufferedWriter bw = Files.newBufferedWriter(target.toPath());
+        for (String line : Resources.readLines(Resources.getResource(inputFile), Charsets.UTF_8)) {
+            bw.write(line);
+            bw.newLine();
+        }
+        bw.close();
+    }
+
+    /*
+     * 下面开始是一些辅助方法
+     */
+
+    /**读取schema文件并转换为json对象*/
+    private static JSONArray parseJson(File schemaFile) throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader(schemaFile));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        while ((line = br.readLine()) != null) {
+            line = line.trim();
+            if (line.length() == 0)
+                continue;
+            if (line.startsWith("//")) // 忽略注释
+                continue;
+            if (line.contains("//")) // inline注释
+                line = line.substring(0, line.indexOf("//"));
+            if (line.endsWith(";")) // 去除最后一行的;
+                line = line.substring(0, line.length() - 1);
+            if (line.startsWith("render")) // 忽略自定义的渲染函数
+                continue;
+
+            if (line.startsWith("module.exports")) { // module语句
+                Matcher m = modulePattern.matcher(line);
+                if (m.matches()) {
+                    sb.append(m.group(1));
+                } else {
+                    System.err.println("ERROR: error format for line: " + line);
+                }
+                continue;
+            }
+
+            sb.append(line);
+        }
+        br.close();
+
+        return JSONArray.parseArray(sb.toString());
+    }
+
+    /**将parse好的行写入一个文件*/
     private static void generateFile(List<String> lines, String outputDir, String tableName, String fileName) throws IOException {
         ensureDir(outputDir, tableName);
         String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
@@ -208,18 +276,7 @@ public class GooGoo {
         bw.close();
     }
 
-    /**从classpath中读取某个文件，原样写入outputDir*/
-    private static void copyFile(String inputFile, String outputDir, String outputName) throws IOException {
-        File target = new File(outputDir, outputName);
-        System.out.println("INFO: writing file " + target.getAbsolutePath());
-        BufferedWriter bw = Files.newBufferedWriter(target.toPath());
-        for (String line : Resources.readLines(Resources.getResource(inputFile), Charsets.UTF_8)) {
-            bw.write(line);
-            bw.newLine();
-        }
-        bw.close();
-    }
-
+    /**获得生成某个表的java文件时，render所需的参数*/
     private static Map<String, String> getParamMap(String tableName) {
         String lowCamelName = tableName;
         String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
@@ -306,58 +363,10 @@ public class GooGoo {
         return sb.toString();
     }
 
-    /**
-     * 读取schema文件并转换为json对象
-     */
-    private static JSONArray parseJson(File schemaFile) throws IOException {
-        BufferedReader br = new BufferedReader(new FileReader(schemaFile));
-        StringBuilder sb = new StringBuilder();
-        String line = null;
-        while ((line = br.readLine()) != null) {
-            line = line.trim();
-            if (line.length() == 0)
-                continue;
-            if (line.startsWith("//")) // 忽略注释
-                continue;
-            if (line.contains("//")) // inline注释
-                line = line.substring(0, line.indexOf("//"));
-            if (line.endsWith(";")) // 去除最后一行的;
-                line = line.substring(0, line.length() - 1);
-            if (line.startsWith("render")) // 忽略自定义的渲染函数
-                continue;
-
-            if (line.startsWith("module.exports")) { // module语句
-                Matcher m = modulePattern.matcher(line);
-                if (m.matches()) {
-                    sb.append(m.group(1));
-                } else {
-                    System.err.println("ERROR: error format for line: " + line);
-                }
-                continue;
-            }
-
-            sb.append(line);
-        }
-        br.close();
-
-        return JSONArray.parseArray(sb.toString());
-    }
-
-    /**
-     * 确保某个目录存在，不存在则新建
-     */
+    /**确保某个目录存在，不存在则新建*/
     private static void ensureDir(String parent, String child) {
         File f = new File(parent, child);
         if (!f.exists())
             f.mkdirs();
     }
-
-    /**
-     * 打印帮助信息
-     */
-    private static void usage() {
-        System.err.println("Param incorrect.");
-        System.err.println("Usage: java -jar xyz.jar [inputDir] [outputDir]");
-    }
-
 }

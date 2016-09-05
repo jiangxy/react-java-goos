@@ -1,3 +1,5 @@
+package me.jxy;
+
 import java.util.Date;
 
 import lombok.Data;
@@ -6,6 +8,7 @@ import lombok.Data;
  * VO例子
  *
  * @version 1.0
+ * @author foolbeargm@gmail.com
  */
 @Data
 public class {upCamelName}VO {

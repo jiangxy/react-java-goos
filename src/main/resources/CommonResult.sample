@@ -1,77 +1,90 @@
-package com.vdian.matrix.common;
+package me.jxy;
 
 import java.io.Serializable;
 
+import lombok.Data;
+
 /**
- * <p>版权所有： 版权所有(C)2011-2099</p>
- * <p>公   司： 口袋购物 </p>
- * <p>内容摘要： </p>
- * <p>其他说明： </p>
- * <p>完成日期：16/1/13</p>
+ * 包装http请求的返回
  *
- * @author liuqingjie
  * @version 1.0
+ * @author foolbeargm@gmail.com
  */
+@Data
 public class CommonResult<T> implements Serializable {
 
-    private static final long serialVersionUID = 6392121795909657029L;
+    private static final long serialVersionUID = 8081585371266115332L;
 
-    private String errorMsg;
     private boolean success = true;
+    private Integer code;
+    private String message;
     private T data;
-    private Integer totalCount;
+    private Integer total;
 
-    public CommonResult() {
-
+    /**
+     * 请求成功
+     *
+     * @param data 要返回的数据
+     * @return
+     */
+    public static <T> CommonResult<T> successReturn(T data) {
+        return successReturn(data, null, null);
     }
 
-    public CommonResult(boolean success, T data) {
-        this.success = success;
-        this.data = data;
+    /**
+     * 请求成功
+     *
+     * @param data 要返回的数据
+     * @param total 数据总数
+     * @return
+     */
+    public static <T> CommonResult<T> successReturn(T data, Integer total) {
+        return successReturn(data, total, null);
     }
 
-    public CommonResult(boolean success, String msg) {
-        this.success = success;
-        this.errorMsg = msg;
+    /**
+     * 请求成功
+     *
+     * @param data 要返回的数据
+     * @param message 要返回的信息
+     * @return
+     */
+    public static <T> CommonResult<T> successReturn(T data, String message) {
+        return successReturn(data, null, message);
     }
 
-    public static <T> CommonResult<T> successReturn(T t) {
-        return new CommonResult<T>(true, t);
+    /**
+     * 请求成功
+     *
+     * @param data 要返回的数据
+     * @param total 数据总数
+     * @param message 要返回的信息
+     * @return
+     */
+    public static <T> CommonResult<T> successReturn(T data, Integer total, String message) {
+        CommonResult<T> result = new CommonResult<T>();
+        result.setSuccess(true);
+        result.setCode(0);
+        result.setMessage(message);
+        result.setData(data);
+        result.setTotal(total);
+        return result;
     }
 
-    public static <T> CommonResult<T> errorReturn(String msg) {
-        return new CommonResult<T>(false, msg);
-    }
-
-    public String getErrorMsg() {
-        return errorMsg;
-    }
-
-    public void setErrorMsg(String errorMsg) {
-        this.errorMsg = errorMsg;
-    }
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
-        this.data = data;
-    }
-
-    public Integer getTotalCount() {
-        return totalCount;
-    }
-
-    public void setTotalCount(Integer totalCount) {
-        this.totalCount = totalCount;
+    /**
+     * 请求失败
+     *
+     * @param code 错误码
+     * @param message 错误信息
+     * @return
+     */
+    public static <T> CommonResult<T> errorReturn(Integer code, String message) {
+        CommonResult<T> result = new CommonResult<T>();
+        result.setSuccess(false);
+        result.setCode(code);
+        result.setMessage(message);
+        result.setData(null);
+        result.setTotal(null);
+        return result;
     }
 }

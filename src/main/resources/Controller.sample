@@ -1,3 +1,5 @@
+package me.jxy;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,6 +29,9 @@ import static com.google.common.base.Preconditions.*;
 /**
  * 针对某个表的CRUD操作 <br/>
  * 注意这个类中的所有方法不能抛异常，即使出错也用CommonResult包装下返回错误信息
+ *
+ * @version 1.0
+ * @author foolbeargm@gmail.com
  */
 @Controller
 @RequestMapping("/api/{lowCamelName}")
@@ -59,10 +64,10 @@ public class {upCamelName}Controller {
 
             // TODO: 填写自己的逻辑
 
-            return CommonResult.successReturn(result);
+            return CommonResult.successReturn(result, 10000);
         } catch (Exception e) {
             logger.error("select error", e);
-            return CommonResult.errorReturn(e.getMessage());
+            return CommonResult.errorReturn(100, "select error");
         }
     }
 
@@ -83,7 +88,7 @@ public class {upCamelName}Controller {
             return CommonResult.successReturn(vo);
         } catch (Exception e) {
             logger.error("insert error", e);
-            return CommonResult.errorReturn(e.getMessage());
+            return CommonResult.errorReturn(200, "insert error");
         }
     }
 
@@ -93,11 +98,11 @@ public class {upCamelName}Controller {
      *
      * @param keys 要更新的记录，逗号分隔的主键
      * @param vo 要更新哪些字段
-     * @return 提示信息，主要提醒用户更新了几条记录
+     * @return 更新了几条记录
      */
     @RequestMapping("update")
     @ResponseBody
-    public CommonResult<String> update(@RequestParam("keys") String keys, @RequestBody {upCamelName}VO vo) {
+    public CommonResult<Integer> update(@RequestParam("keys") String keys, @RequestBody {upCamelName}VO vo) {
         try {
             checkNotNull(keys);
             checkNotNull(vo);
@@ -105,10 +110,10 @@ public class {upCamelName}Controller {
             // 注意：主键可能是数字，也可能是字符串，要自己处理
             // TODO: 填写自己的逻辑
 
-            return CommonResult.successReturn("成功更新XX条记录");
+            return CommonResult.successReturn(100);
         } catch (Exception e) {
             logger.error("update error", e);
-            return CommonResult.errorReturn(e.getMessage());
+            return CommonResult.errorReturn(300, "update error");
         }
     }
 
@@ -117,20 +122,20 @@ public class {upCamelName}Controller {
      * 可以单条删除，也能批量删除
      *
      * @param keys 要删除的记录，逗号分隔的主键
-     * @return 提示信息，主要提示用户删除了几条记录
+     * @return 删除了几条记录
      */
     @RequestMapping("delete")
     @ResponseBody
-    public CommonResult<String> delete(@RequestParam("keys") String keys) {
+    public CommonResult<Integer> delete(@RequestParam("keys") String keys) {
         try {
             checkNotNull(keys);
 
             // TODO: 填写自己的逻辑
 
-            return CommonResult.successReturn("成功删除XX条记录");
+            return CommonResult.successReturn(99);
         } catch (Exception e) {
             logger.error("delete error", e);
-            return CommonResult.errorReturn(e.getMessage());
+            return CommonResult.errorReturn(400, "delete error");
         }
     }
 
@@ -159,7 +164,7 @@ public class {upCamelName}Controller {
             return CommonResult.successReturn("导入成功XX条，导入失败YY条，导入失败的行：1,2,3");
         } catch (Exception e) {
             logger.error("import error", e);
-            return CommonResult.errorReturn(e.getMessage());
+            return CommonResult.errorReturn(500, "import error");
         }
     }
 
