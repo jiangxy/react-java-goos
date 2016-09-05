@@ -37,7 +37,7 @@ import static com.google.common.base.Preconditions.*;
 @RequestMapping("/api/{lowCamelName}")
 public class {upCamelName}Controller {
 
-    private static Logger logger = LoggerFactory.getLogger({upCamelName}Controller.class);
+    private final static Logger logger = LoggerFactory.getLogger({upCamelName}Controller.class);
 
     /*
      * 如果要提供跨域的接口，需要支持CORS
