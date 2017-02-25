@@ -136,7 +136,7 @@ public class GooGoo {
 
                     if ("between".equals(showType)) {
                         fields.append(getBetweenField(dataType, field.getString("key")));
-                    } else if ("checkbox".equals(showType) || "multiselect".equals(showType)) {
+                    } else if ("checkbox".equals(showType) || "multiSelect".equals(showType)) {
                         fields.append(getListField(dataType, field.getString("key")));
                     } else {
                         fields.append(getSingleField(dataType, field.getString("key")));
@@ -176,7 +176,7 @@ public class GooGoo {
                     String dataType = Objects.firstNonNull(field.getString("dataType"), "varchar");
                     String showType = Objects.firstNonNull(field.getString("showType"), "normal");
 
-                    if ("checkbox".equals(showType) || "multiselect".equals(showType) || "imageArray".equals(showType)) {
+                    if ("checkbox".equals(showType) || "multiSelect".equals(showType) || "imageArray".equals(showType)) {
                         fields.append(getListField(dataType, field.getString("key")));
                     } else {
                         fields.append(getSingleField(dataType, field.getString("key")));
