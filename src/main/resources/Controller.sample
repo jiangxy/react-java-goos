@@ -154,7 +154,7 @@ public class {upCamelName}Controller {
             logger.info("import: writing tmp file {}", tmpFile.getAbsolutePath());
             file.transferTo(tmpFile);
 
-            // TODO: 处理文件并导入数据
+            // TODO: 处理tmpFile并导入数据
 
             // 最后删除这个临时文件
             logger.info("import: delete tmp file {}", tmpFile.getAbsolutePath());
@@ -185,12 +185,12 @@ public class {upCamelName}Controller {
             // 注意这个方法是查询符合条件的所有记录，忽略vo中的page和pageSize
             {upCamelName}QueryVO vo = JSONObject.parseObject(q, {upCamelName}QueryVO.class);
 
-            // TODO: 根据QueryVO中的条件查询并将结果写入一个临时文件
-            String fileName = "export.csv"; // 用户下载得到的文件名
+            String fileName = "export.csv"; // 用户下载得到的文件名，暂时写死
             File tmpFile = new File(System.getProperty("java.io.tmpdir"), System.currentTimeMillis() + fileName);
             logger.info("export: writing tmp file {}", tmpFile.getAbsolutePath());
+            // TODO: 根据QueryVO中的条件查询并将结果写入tmpFile
 
-            // 通过http返回数据
+            // 返回下载请求，这段代码不是很优雅，以后要优化下
             res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
             InputStream in = new FileInputStream(tmpFile);
             ServletOutputStream out = res.getOutputStream();

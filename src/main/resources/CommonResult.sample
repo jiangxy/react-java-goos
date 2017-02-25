@@ -74,6 +74,16 @@ public class CommonResult<T> implements Serializable {
     /**
      * 请求失败
      *
+     * @param message 错误信息
+     * @return
+     */
+    public static <T> CommonResult<T> errorReturn(String message) {
+        return errorReturn(null, message);
+    }
+
+    /**
+     * 请求失败
+     *
      * @param code 错误码
      * @param message 错误信息
      * @return

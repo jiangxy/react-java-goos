@@ -41,6 +41,7 @@ public class LoginController {
     @ResponseBody
     public CommonResult<String> login(String username, String password) {
         // TODO: 填写自己的逻辑
+        logger.info("username = {}", username);
         return CommonResult.successReturn("guest");
     }
 
@@ -53,5 +54,6 @@ public class LoginController {
     @ResponseBody
     public void logout(HttpServletResponse res) {
         // TODO: 填写自己的逻辑
+        // res.sendRedirect("/sso/logout");
     }
 }
