@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Charsets;
+import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -50,7 +51,7 @@ public class GooGoo {
         }
 
         String inputDir = "../src/schema";
-        String outputDir = ".";
+        String outputDir = "output";
 
         if (args.length == 2) {
             inputDir = args[0];
@@ -73,8 +74,8 @@ public class GooGoo {
         }
 
         if (!f2.exists()) {
-            System.err.println("ERROR: " + outputDir + " not exist");
-            return;
+            f2.mkdirs();
+            System.out.println("INFO: mkdir " + outputDir);
         }
 
         // 扫描inputDir下的所有文件
@@ -95,18 +96,17 @@ public class GooGoo {
                 generateVO(f, outputDir, tableName);
             }
 
-            if (tableName != null) {
-                if (!allTable.contains(tableName)) {
-                    generateController(outputDir, tableName);
-                    allTable.add(tableName);
-                }
+            if (tableName != null && !allTable.contains(tableName)) {
+                generateController(outputDir, tableName);
+                allTable.add(tableName);
             }
         }
 
         // 每个表特定的类生成完毕，开始生成一些通用的类
         try {
-            copyFile("LoginController.sample", outputDir, "LoginController.java");
-            copyFile("CommonResult.sample", outputDir, "CommonResult.java");
+            // 直接copy过去就好，不用render了
+            copyFileFromClasspath("LoginController.sample", outputDir, "LoginController.java");
+            copyFileFromClasspath("CommonResult.sample", outputDir, "CommonResult.java");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -121,16 +121,18 @@ public class GooGoo {
         System.out.println("INFO: generating QueryVO for " + tableName);
 
         try {
+            // 这个render的过程借鉴了一些velocity的理念
             Map<String, String> params = getParamMap(tableName);
             JSONArray schema = parseJson(schemaFile);
 
             // 开始处理schema，根据dataType和showType生成各个字段
             StringBuilder fields = new StringBuilder();
-            for (Object o : schema) {
+            for (int i = 0; i < schema.size(); i++) {
                 // 一个字段处理失败不应该影响全局
                 try {
-                    JSONObject field = (JSONObject) o;
-                    String dataType = field.getString("dataType"), showType = field.containsKey("showType") ? field.getString("showType") : "normal";
+                    JSONObject field = schema.getJSONObject(i);
+                    String dataType = Objects.firstNonNull(field.getString("dataType"), "varchar");
+                    String showType = Objects.firstNonNull(field.getString("showType"), "normal");
 
                     if ("between".equals(showType)) {
                         fields.append(getBetweenField(dataType, field.getString("key")));
@@ -140,17 +142,16 @@ public class GooGoo {
                         fields.append(getSingleField(dataType, field.getString("key")));
                     }
                 } catch (Exception e) {
-                    System.err.println("ERROR: parsing field " + o + ": " + e.getMessage());
+                    System.err.println("ERROR: parsing field " + schema.getJSONObject(i) + ": " + e.getMessage());
                 }
             }
 
             // 读取模版文件并做变量替换
             params.put("fields", fields.toString());
-            List<String> lines = parseTemplate("QueryVO.sample", params);
+            List<String> lines = renderTemplate("QueryVO.sample", params);
 
             // 将parse后的内容写入文件
-            generateFile(lines, outputDir, tableName, "QueryVO.java");
-
+            writeLinesToFile(lines, outputDir, tableName, "QueryVO.java");
         } catch (Exception e) {
             System.err.println("ERROR: generating QueryVO ERROR: " + schemaFile.getAbsolutePath());
             e.printStackTrace();
@@ -169,24 +170,28 @@ public class GooGoo {
 
             // 开始处理schema
             StringBuilder fields = new StringBuilder();
-            for (Object o : schema) {
+            for (int i = 0; i < schema.size(); i++) {
                 try {
-                    JSONObject field = (JSONObject) o;
-                    String dataType = field.getString("dataType");
-                    // dataSchema现在没有showType属性，所以都是singleField
-                    fields.append(getSingleField(dataType, field.getString("key")));
+                    JSONObject field = schema.getJSONObject(i);
+                    String dataType = Objects.firstNonNull(field.getString("dataType"), "varchar");
+                    String showType = Objects.firstNonNull(field.getString("showType"), "normal");
+
+                    if ("checkbox".equals(showType) || "multiselect".equals(showType) || "imageArray".equals(showType)) {
+                        fields.append(getListField(dataType, field.getString("key")));
+                    } else {
+                        fields.append(getSingleField(dataType, field.getString("key")));
+                    }
                 } catch (Exception e) {
-                    System.err.println("ERROR: parsing field " + o + ": " + e.getMessage());
+                    System.err.println("ERROR: parsing field " + schema.getJSONObject(i) + ": " + e.getMessage());
                 }
             }
 
             // 读取模版文件并做变量替换
             params.put("fields", fields.toString());
-            List<String> lines = parseTemplate("VO.sample", params);
+            List<String> lines = renderTemplate("VO.sample", params);
 
             // 将parse后的内容写入文件
-            generateFile(lines, outputDir, tableName, "VO.java");
-
+            writeLinesToFile(lines, outputDir, tableName, "VO.java");
         } catch (Exception e) {
             System.err.println("ERROR: generating VO ERROR: " + schemaFile.getAbsolutePath());
             e.printStackTrace();
@@ -201,35 +206,72 @@ public class GooGoo {
 
         try {
             Map<String, String> params = getParamMap(tableName);
-            List<String> lines = parseTemplate("Controller.sample", params);
-            generateFile(lines, outputDir, tableName, "Controller.java");
+            List<String> lines = renderTemplate("Controller.sample", params);
+            writeLinesToFile(lines, outputDir, tableName, "Controller.java");
         } catch (Exception e) {
             System.err.println("ERROR: generating Controller ERROR: " + tableName);
             e.printStackTrace();
         }
     }
 
-    /**
-     * 从classpath中读取某个文件，原样写入outputDir
-     */
-    private static void copyFile(String inputFile, String outputDir, String outputName) throws IOException {
-        File target = new File(outputDir, outputName);
-        if (target.exists()) {
-            System.out.println("INFO: delete exist file " + target.getAbsolutePath());
-            target.delete();
-        }
-        System.out.println("INFO: writing file " + target.getAbsolutePath());
-        BufferedWriter bw = Files.newBufferedWriter(target.toPath());
-        for (String line : Resources.readLines(Resources.getResource(inputFile), Charsets.UTF_8)) {
-            bw.write(line);
-            bw.newLine();
-        }
-        bw.close();
+    /**获得生成某个表的java文件时，render所需的参数*/
+    private static Map<String, String> getParamMap(String tableName) {
+        String lowCamelName = tableName;
+        String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
+        Map<String, String> params = Maps.newHashMap();
+        params.put("lowCamelName", lowCamelName);
+        params.put("upCamelName", upCamelName);
+        return params;
     }
 
-    /*
-     * 下面开始是一些辅助方法
-     */
+    /**生成普通的字段*/
+    private static String getSingleField(String dataType, String key) {
+        if ("int".equals(dataType)) {
+            return "private Long " + key + ";\n";
+        } else if ("float".equals(dataType)) {
+            return "private Double " + key + ";\n";
+        } else if ("varchar".equals(dataType)) {
+            return "private String " + key + ";\n";
+        } else if ("datetime".equals(dataType)) {
+            return "private Date " + key + ";\n";
+        } else {
+            throw new RuntimeException("unknown dataType " + dataType);
+        }
+    }
+
+    /**生成list字段*/
+    private static String getListField(String dataType, String key) {
+        if ("int".equals(dataType)) {
+            return "private List<Long> " + key + ";\n";
+        } else if ("varchar".equals(dataType)) {
+            return "private List<String> " + key + ";\n";
+        } else if ("float".equals(dataType)) {
+            return "private List<Double> " + key + ";\n";
+        } else if ("datetime".equals(dataType)) {
+            return "private List<Date> " + key + ";\n";
+        } else {
+            throw new RuntimeException("unknown dataType " + dataType);
+        }
+    }
+
+    /**生成两个字段，用于范围查询，只有int/float/datetime可能出现范围查询*/
+    private static String getBetweenField(String dataType, String key) {
+        StringBuilder sb = new StringBuilder();
+        if ("int".equals(dataType)) {
+            sb.append("private Long " + key + "Begin;\n");
+            sb.append("private Long " + key + "End;\n");
+        } else if ("float".equals(dataType)) {
+            sb.append("private Double " + key + "Begin;\n");
+            sb.append("private Double " + key + "End;\n");
+        } else if ("datetime".equals(dataType)) {
+            sb.append("private Date " + key + "Begin;\n");
+            sb.append("private Date " + key + "End;\n");
+        } else {
+            throw new RuntimeException("unknown dataType " + dataType);
+        }
+
+        return sb.toString();
+    }
 
     /**读取schema文件并转换为json对象*/
     private static JSONArray parseJson(File schemaFile) throws IOException {
@@ -242,11 +284,15 @@ public class GooGoo {
                 continue;
             if (line.startsWith("//")) // 忽略注释
                 continue;
+            if (line.startsWith("import")) // 开始时的import语句
+                continue;
             if (line.contains("//")) // inline注释
                 line = line.substring(0, line.indexOf("//"));
             if (line.endsWith(";")) // 去除最后一行的;
                 line = line.substring(0, line.length() - 1);
-            if (line.startsWith("render")) // 忽略自定义的渲染函数
+
+            // 忽略一些无关的字段，这些字段可能有jsx或函数，导致parse schema出错
+            if (line.contains("render") || line.contains("addonBefore") || line.contains("addonAfter") || line.contains("validator"))
                 continue;
 
             if (line.startsWith("module.exports")) { // module语句
@@ -263,11 +309,47 @@ public class GooGoo {
         }
         br.close();
 
-        return JSONArray.parseArray(sb.toString());
+        // {a:1, b:2, c:3,}这种结构，在js里能正常识别为一个对象，但fastjson会出错
+        char[] charArray = sb.toString().toCharArray();
+        for (int i = 0; i < charArray.length - 1; i++) {
+            char thisChar = charArray[i];
+            char nextChar = charArray[i + 1];
+            if (thisChar == ',' && (nextChar == '}' || nextChar == ']')) {
+                charArray[i] = ' ';
+            }
+        }
+
+        return JSONArray.parseArray(new String(charArray));
     }
 
-    /**将parse好的行写入一个文件*/
-    private static void generateFile(List<String> lines, String outputDir, String tableName, String fileName) throws IOException {
+    /*
+     * 
+     * 下面开始是一些辅助方法
+     * 
+     */
+
+    /**
+     * 从classpath中读取某个文件，原样写入outputDir
+     */
+    private static void copyFileFromClasspath(String inputFile, String outputDir, String outputName) throws IOException {
+        File target = new File(outputDir, outputName);
+        if (target.exists()) {
+            System.out.println("INFO: delete exist file " + target.getAbsolutePath());
+            target.delete();
+        }
+        System.out.println("INFO: writing file " + target.getAbsolutePath());
+        BufferedWriter bw = Files.newBufferedWriter(target.toPath());
+        for (String line : Resources.readLines(Resources.getResource(inputFile), Charsets.UTF_8)) {
+            bw.write(line);
+            bw.newLine();
+        }
+        bw.close();
+    }
+
+    /**
+     * 将parse好的行写入一个文件
+     */
+    private static void writeLinesToFile(List<String> lines, String outputDir, String tableName, String fileName) throws IOException {
         ensureDir(outputDir, tableName);
         String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
         File target = new File(outputDir + "/" + tableName + "/" + upCamelName + fileName);
@@ -284,18 +366,10 @@ public class GooGoo {
         bw.close();
     }
 
-    /**获得生成某个表的java文件时，render所需的参数*/
-    private static Map<String, String> getParamMap(String tableName) {
-        String lowCamelName = tableName;
-        String upCamelName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
-        Map<String, String> params = Maps.newHashMap();
-        params.put("lowCamelName", lowCamelName);
-        params.put("upCamelName", upCamelName);
-        return params;
-    }
-
-    /**读取模版文件并做变量替换*/
-    private static List<String> parseTemplate(String templateFileName, final Map<String, String> params) throws MalformedURLException, IOException {
+    /**
+     * 读取模版文件并做变量替换
+     */
+    private static List<String> renderTemplate(String templateFileName, final Map<String, String> params) throws MalformedURLException, IOException {
         final Pattern p = Pattern.compile("\\{(.*?)\\}");
         // 定义每行的处理逻辑
         LineProcessor<List<String>> processor = new LineProcessor<List<String>>() {
@@ -326,52 +400,9 @@ public class GooGoo {
         return Resources.readLines(Resources.getResource(templateFileName), Charsets.UTF_8, processor);
     }
 
-    /**生成普通的字段*/
-    private static String getSingleField(String dataType, String key) {
-        if ("int".equals(dataType)) {
-            return "private Long " + key + ";\n";
-        } else if ("float".equals(dataType)) {
-            return "private Double " + key + ";\n";
-        } else if ("varchar".equals(dataType)) {
-            return "private String " + key + ";\n";
-        } else if ("datetime".equals(dataType)) {
-            return "private Date " + key + ";\n";
-        } else {
-            throw new RuntimeException("unknown dataType " + dataType);
-        }
-    }
-
-    /**生成list字段，目前只有dataType=int/varchar时可能List*/
-    private static String getListField(String dataType, String key) {
-        if ("int".equals(dataType)) {
-            return "private List<Long> " + key + ";\n";
-        } else if ("varchar".equals(dataType)) {
-            return "private List<String> " + key + ";\n";
-        } else {
-            throw new RuntimeException("unknown dataType " + dataType);
-        }
-    }
-
-    /**生成两个字段，用于范围查询，只有int/float/datetime可能出现范围查询*/
-    private static String getBetweenField(String dataType, String key) {
-        StringBuilder sb = new StringBuilder();
-        if ("int".equals(dataType)) {
-            sb.append("private Long " + key + "Begin;\n");
-            sb.append("private Long " + key + "End;\n");
-        } else if ("float".equals(dataType)) {
-            sb.append("private Double " + key + "Begin;\n");
-            sb.append("private Double " + key + "End;\n");
-        } else if ("datetime".equals(dataType)) {
-            sb.append("private Date " + key + "Begin;\n");
-            sb.append("private Date " + key + "End;\n");
-        } else {
-            throw new RuntimeException("unknown dataType " + dataType);
-        }
-
-        return sb.toString();
-    }
-
-    /**确保某个目录存在，不存在则新建*/
+    /**
+     * 确保某个目录存在，不存在则新建
+     */
     private static void ensureDir(String parent, String child) {
         File f = new File(parent, child);
         if (!f.exists())
