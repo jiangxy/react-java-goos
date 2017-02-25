@@ -10,7 +10,7 @@
 
 首先要按照[React通用后台](https://github.com/jiangxy/react-antd-admin)的要求写好querySchema和dataSchema文件，然后直接执行jar文件即可：
 
-`java -jar goos-0.1.0.jar [输入目录] [输出目录]`
+`java -jar goos-1.1.0.jar [输入目录] [输出目录]`
 
 输入目录大概是这种结构：
 ```bash
@@ -49,6 +49,22 @@ total 32
 把生成的类copy到自己的项目中，将Controller类的逻辑填写完整，前端需要的接口就完成了。
 
 更多文档请参考[React通用后台](https://github.com/jiangxy/react-antd-admin)项目。
+
+## 关于跨域
+
+spring 4.2之后开始支持[CORS跨域](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS)，但可能有些问题，见[代码中的注释](src/main/resources/Controller.sample#L42)。
+
+对于SpringMVC的配置，给出一个例子：[springMVC.xml](springMVC.xml)，注意其中的message converter和跨域相关配置。
+
+跨域需要先一次OPTIONS请求，再实际的GET/POST之类请求。如果你的web.xml中配置了一些filter，可能导致OPTIONS请求失败，这就需要具体情况具体分析了。
+
+我的习惯是这边`localhost:8080`跑着tomcat，那边`localhost:4040`跑着webpack-dev-server，这样调试起来很方便。
+
+## TIPS
+
+schema中的`int/float`会被转换为java中的`Long/Double`，为了简单，不区分`Long/Integer`和`Double/Float`了，要注意一下。
+
+一般我们要将VO转换为其他pojo去操作，转换的时候可能用到`BeanUtils.copyProperties`之类的方法，对于同名但不同类型的字段，`copyProperties`不会生效的，比如不会把`Long id`的字段值copy给`Integer id`，要自己注意下。
 
 ## 关于goos
 
