@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,9 +32,11 @@ import com.google.common.io.Resources;
  */
 public class GooGoo {
 
+    // schema文件中一个特殊的key，用于自定义操作
+    public static final String ACTION_KEY = "singleRecordActions";
+
     private static Pattern querySchemaPattern = Pattern.compile("^(.*)\\.querySchema\\.js$");
     private static Pattern dataSchemaPattern = Pattern.compile("^(.*)\\.dataSchema\\.js$");
-    private static Pattern modulePattern = Pattern.compile("^module\\.exports\\s+=\\s+(.*)$");
 
     /**
      * 打印帮助信息
@@ -107,6 +110,7 @@ public class GooGoo {
             // 直接copy过去就好，不用render了
             copyFileFromClasspath("LoginController.sample", outputDir, "LoginController.java");
             copyFileFromClasspath("CommonResult.sample", outputDir, "CommonResult.java");
+            copyFileFromClasspath("UploadController.sample", outputDir, "UploadController.java");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -173,8 +177,23 @@ public class GooGoo {
             for (int i = 0; i < schema.size(); i++) {
                 try {
                     JSONObject field = schema.getJSONObject(i);
+                    if (ACTION_KEY.equals(field.getString("key"))) {
+                        System.out.println("INFO: skip field " + ACTION_KEY);
+                        continue;
+                    }
+
                     String dataType = Objects.firstNonNull(field.getString("dataType"), "varchar");
                     String showType = Objects.firstNonNull(field.getString("showType"), "normal");
+
+                    // 对于file和image要特殊处理下
+                    if ("file".equals(showType) || "image".equals(showType)) {
+                        if (!field.containsKey("max") || field.getInteger("max") == 1) {
+                            fields.append(getSingleField(dataType, field.getString("key")));
+                        } else {
+                            fields.append(getListField(dataType, field.getString("key")));
+                        }
+                        continue;
+                    }
 
                     if ("checkbox".equals(showType) || "multiSelect".equals(showType) || "imageArray".equals(showType)) {
                         fields.append(getListField(dataType, field.getString("key")));
@@ -275,6 +294,13 @@ public class GooGoo {
 
     /**读取schema文件并转换为json对象*/
     private static JSONArray parseJson(File schemaFile) throws IOException {
+
+        // 这个方法其实有很多问题，可能有各种corner case，要将js的对象转换为java中的json还是有点麻烦的
+        // 难道要写一个语法解析器么。。。太麻烦了
+        // 先将就着用吧，这个方法不会校验schema的正确性，对json格式也有要求（以webstorm的默认的格式化为准），要注意下
+        // 如果json格式不符合要求，即使是正确的json，解析也会出错
+
+        Stack<String> stack = new Stack<String>();
         BufferedReader br = new BufferedReader(new FileReader(schemaFile));
         StringBuilder sb = new StringBuilder();
         String line = null;
@@ -286,31 +312,39 @@ public class GooGoo {
                 continue;
             if (line.startsWith("import")) // 开始时的import语句
                 continue;
-            if (line.contains("//")) // inline注释
-                line = line.substring(0, line.indexOf("//"));
-            if (line.endsWith(";")) // 去除最后一行的;
-                line = line.substring(0, line.length() - 1);
-
-            // 忽略一些无关的字段，这些字段可能有jsx或函数，导致parse schema出错
-            if (line.contains("render") || line.contains("addonBefore") || line.contains("addonAfter") || line.contains("validator"))
+            if (line.startsWith("module.exports")) // module语句
                 continue;
 
-            if (line.startsWith("module.exports")) { // module语句
-                Matcher m = modulePattern.matcher(line);
-                if (m.matches()) {
-                    sb.append(m.group(1));
-                } else {
-                    System.err.println("ERROR: error format for line: " + line);
-                }
+            // 找到第一个json开始的地方
+            if (stack.size() == 0 && !line.equals("{")) {
                 continue;
             }
 
-            sb.append(line);
+            stack.push(line);
+
+            if (line.equals("},")) { // 碰到了json的结尾
+                List<String> list = Lists.newArrayList(); // 暂存json中间的行
+                while (stack.size() > 0) {
+                    String lastLine = stack.pop(); // pop直到碰到{
+                    if (lastLine.equals("{")) {
+                        break;
+                    }
+                    list.add(lastLine);
+                }
+                // 如果stack.size=0了，说明已经是最外层的json了
+                if (stack.size() == 0) {
+                    sb.append("}{");
+                    appendLine(sb, list);
+                }
+            }
         }
         br.close();
 
+        // 组合最终的json字符串
+        String tmp = "[" + sb.substring(1) + "}]";
+
         // {a:1, b:2, c:3,}这种结构，在js里能正常识别为一个对象，但fastjson会出错
-        char[] charArray = sb.toString().toCharArray();
+        char[] charArray = tmp.toCharArray();
         for (int i = 0; i < charArray.length - 1; i++) {
             char thisChar = charArray[i];
             char nextChar = charArray[i + 1];
@@ -318,8 +352,22 @@ public class GooGoo {
                 charArray[i] = ' ';
             }
         }
-
         return JSONArray.parseArray(new String(charArray));
+    }
+
+    // 转换json时的辅助方法
+    private static void appendLine(StringBuilder sb, List<String> list) {
+        for (String line : list) {
+            // 只关心特定的字段
+            if (!line.startsWith("key:") && !line.startsWith("dataType:") && !line.startsWith("showType:") && !line.startsWith("max:")) {
+                continue;
+            }
+            if (line.contains("//")) {// inline注释
+                sb.append(line.substring(0, line.indexOf("//")));
+            } else {
+                sb.append(line);
+            }
+        }
     }
 
     /*
