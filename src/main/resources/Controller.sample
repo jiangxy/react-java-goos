@@ -216,4 +216,26 @@ public class {upCamelName}Controller {
         }
     }
 
+    /**
+     * 获取服务端schema
+     *
+     * @return
+     */
+    @RequestMapping("schema")
+    @ResponseBody
+    public CommonResult<JSONObject> getSchema() {
+        try {
+            JSONObject schema = new JSONObject();
+
+            // TODO: 按自己的需要决定是否更新querySchema和dataSchema，前端会将schema合并后展示
+            // schema.put("querySchema", new JSONObject());
+            // schema.put("dataSchema", new JSONObject());
+
+            return CommonResult.successReturn(schema);
+        } catch (Exception e) {
+            logger.error("get schema error", e);
+            return CommonResult.errorReturn(600, "get schema error");
+        }
+    }
+
 }
