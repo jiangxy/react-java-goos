@@ -228,8 +228,8 @@ public class {upCamelName}Controller {
             JSONObject schema = new JSONObject();
 
             // TODO: 按自己的需要决定是否更新querySchema和dataSchema，前端会将schema合并后展示
-            // schema.put("querySchema", new JSONObject());
-            // schema.put("dataSchema", new JSONObject());
+            // schema.put("querySchema", new JSONArray());
+            // schema.put("dataSchema", new JSONArray());
 
             return CommonResult.successReturn(schema);
         } catch (Exception e) {
